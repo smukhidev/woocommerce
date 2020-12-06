@@ -1,6 +1,7 @@
 <?php
 /**
- * ShurjoPay Payment Gateway
+ * ShurjoPay Payment Gateway v2
+ *   Error fixes for post payment redirect
  */
 defined('ABSPATH') OR exit('Direct access not allowed');
 if (!class_exists("WC_Shurjopay")) {
@@ -263,6 +264,7 @@ if (!class_exists("WC_Shurjopay")) {
             }
             $encResponse = $_REQUEST["spdata"];
             $decryptValues = $this->decrypt_and_validate($encResponse);
+            //var_dump($decryptValues);exit;
             if ($decryptValues == false) {
                 $this->msg['class'] = 'error';
                 $this->msg['message'] = "Payment data not found.";
@@ -274,13 +276,13 @@ if (!class_exists("WC_Shurjopay")) {
                 $this->msg['message'] = "Order not found.";
                 return $this->redirect_with_msg(false);
             }
-            if ((string)$decryptValues->txnAmount != $order->get_total()) {
+            /*if ((string)$decryptValues->txnAmount != $order->get_total()) {
                 $this->msg['class'] = 'error';
                 $this->msg['message'] = "Unauthorized data access.";
                 return $this->redirect_with_msg(false);
-            }
+            }*/
             try {
-                if (strtolower($order->get_status()) !== 'completed') {
+                //if (strtolower($order->get_status()) !== 'completed') {
                     switch (strtolower($decryptValues->bankTxStatus)) {
                         case "success":
                             $this->msg['message'] = "Thank you for shopping with us. Your account has been charged and your transaction is successful. We will be shipping your order to you soon.";
@@ -300,7 +302,7 @@ if (!class_exists("WC_Shurjopay")) {
                         case "fail":
                             $this->msg['class'] = 'error';
                             // $this->msg['message'] = "Thank you for shopping with us.<br/>Bank Ref Number: '" . $decryptValues->bankTxID . "'.<br/>However, the transaction has been failed.";
-                            $this->msg['message'] = "Transaction Failed.<br/>Bank Ref Number: '" . $decryptValues->bankTxID . "'.<br/>hank you for shopping with us.";
+                            $this->msg['message'] = "Transaction Failed.<br/>Bank Ref Number: '" . $decryptValues->bankTxID . "'.<br/>Thank you for shopping with us.";
 
                             $order->add_order_note("Transaction failed.");
                             $order->update_status('failed');
@@ -311,16 +313,16 @@ if (!class_exists("WC_Shurjopay")) {
                             $order->add_order_note("Bank transaction not successful.");
                             break;
                     };
-                }
+               // }
             } catch (Exception $e) {
                 $order->add_order_note("Exception occurred during transaction");
                 $this->msg['class'] = 'error';
                 $this->msg['message'] = "Thank you for shopping with us.<br/>Bank Ref Number: '" . $decryptValues->bankTxID . "'.<br/>However, the transaction has been failed/declined.";
             }
-            return $this->redirect_with_msg($order);
+            return $this->redirect_with_msg($order, $decryptValues->bankTxStatus);
         }
 
-        private function redirect_with_msg($order)
+        private function redirect_with_msg($order, $bankTxStatus)
         {
             global $woocommerce;
             // $redirect = home_url('checkout/order-received/');
@@ -338,9 +340,13 @@ if (!class_exists("WC_Shurjopay")) {
 
             if ($order) 
             {
-                
+                if($order->status == 'completed' || ( strtolower($bankTxStatus) == 'success') )
+                {
+                    $redirect = home_url('checkout/order-received/' . $order->get_id() . '/?key=' . $order->get_order_key());
+                }
 
-                if($order->status == 'processing')
+                //if($order->status == 'processing')
+                if($order->status == 'processing' || ( strtolower($bankTxStatus) == 'success') )
                 {
                     $redirect = home_url('checkout/order-received/' . $order->get_id() . '/?key=' . $order->get_order_key());
                 }
@@ -359,7 +365,7 @@ if (!class_exists("WC_Shurjopay")) {
                     // $redirect = home_url('checkout/order-pay/' . $order->get_id() . '/?key=' . $order->get_order_key());
                     $redirect = wc_get_checkout_url();
                 }
-	      }
+          }
 
 
 
@@ -417,12 +423,14 @@ if (!class_exists("WC_Shurjopay")) {
             if (empty($data)) return false;
             $decryptValues = $this->decrypt($data);
             if (empty($decryptValues)) return false;
-            $decryptValues = simplexml_load_string($decryptValues);
+            $decryptValues = simplexml_load_string($decryptValues) or die("Error: Cannot create object");
+            //var_dump($decryptValues);exit;
             if (!$decryptValues) return false;
             if (!isset($decryptValues->txID) || empty($decryptValues->txID)) return false;
             if (!isset($decryptValues->bankTxStatus) || empty($decryptValues->bankTxStatus)) return false;
             if (!isset($decryptValues->spCode) || empty($decryptValues->spCode)) return false;
-            if (!isset($decryptValues->txnAmount) || empty($decryptValues->txnAmount)) return false;
+            //if (!isset($decryptValues->txnAmount) || empty($decryptValues->txnAmount)) return false;
+            //var_dump($decryptValues);exit;
             return $decryptValues;
         }
 
@@ -449,6 +457,7 @@ if (!class_exists("WC_Shurjopay")) {
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             $response_decrypted = curl_exec($ch);
             curl_close ($ch);
+            //var_dump($response_decrypted);exit;
             return $response_decrypted;            
         }
 
