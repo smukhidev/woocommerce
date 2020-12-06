@@ -7,8 +7,8 @@ shurjoPay woocommerce plugin for easy integration.
 
 Download the shurjoPay(plugin) folder and upload to wp-content/plugins folder.
 
-### Erro fixed
-# Post payment return fixes.
+### Error fixed
+ > Post payment return fixes.
 
 ### Step 1: 
 	Go to WooCommerce-> Settings->Payments
