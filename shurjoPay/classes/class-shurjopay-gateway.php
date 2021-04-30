@@ -282,7 +282,7 @@ if (!class_exists("WC_Shurjopay")) {
                 return $this->redirect_with_msg(false);
             }*/
             try {
-                //if (strtolower($order->get_status()) !== 'completed') {
+                if (strtolower($order->get_status()) != 'completed') {
                     switch (strtolower($decryptValues->bankTxStatus)) {
                         case "success":
                             $this->msg['message'] = "Thank you for shopping with us. Your account has been charged and your transaction is successful. We will be shipping your order to you soon.";
@@ -313,7 +313,7 @@ if (!class_exists("WC_Shurjopay")) {
                             $order->add_order_note("Bank transaction not successful.");
                             break;
                     };
-               // }
+                }
             } catch (Exception $e) {
                 $order->add_order_note("Exception occurred during transaction");
                 $this->msg['class'] = 'error';
