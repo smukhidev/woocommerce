@@ -399,6 +399,17 @@ if (!class_exists("WC_Shurjopay")) {
             if (!is_object($order)) {
                 $order = new WC_Order($order);
             }
+            
+            $totalamount=$order->get_total();
+            $currency = get_woocommerce_currency();
+            if($currency=="BDT")
+            {
+                $totalamount=$order->get_total();
+            }
+            else
+            {
+                $totalamount=($order->get_total()*85);
+            }
 
             $uniq_transaction_key = $this->api_unique_id . $order->get_id() . '_' . date("ymds");
             $payload = 'spdata=<?xml version="1.0" encoding="utf-8"?>
@@ -406,7 +417,7 @@ if (!class_exists("WC_Shurjopay")) {
                             <merchantPass>' . $this->trans_key . '</merchantPass>
                             <userIP>' . $this->api_ip . '</userIP>
                             <uniqID>' . $uniq_transaction_key . '</uniqID>
-                            <totalAmount>' . $order->get_total() . '</totalAmount>
+                            <totalAmount>' . $totalamount . '</totalAmount>
                             <paymentOption>shurjopay</paymentOption>
                             <returnURL>' . $this->api_return_url . '</returnURL></shurjoPay>';
             $response = $this->shurjopay_submit_data($this->gw_api_url, $payload);
