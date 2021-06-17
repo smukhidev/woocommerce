@@ -171,7 +171,7 @@ if (!class_exists("WC_Shurjopay")) {
          */
         public function is_valid_for_use()
         {
-            return in_array(get_woocommerce_currency(), array('BDT'), true);
+            return in_array(get_woocommerce_currency(), array('BDT','USD'), true);
         }
 
         /**
