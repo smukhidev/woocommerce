@@ -410,6 +410,14 @@ if (!class_exists("WC_Shurjopay")) {
             {
                 $totalamount=($order->get_total()*85);
             }
+				$shipping_first_name = $order->get_billing_first_name();
+				$shipping_last_name  = $order->get_billing_last_name();
+				
+				$shipping_address_1  = $customer->get_billing_address_1();
+				$shipping_address_2  = $customer->get_billing_address_2();
+				$shipping_order   = $order->get_billing_phone();
+				$shipping_email   = $order->get_billing_email();
+
 
             $uniq_transaction_key = $this->api_unique_id . $order->get_id() . '_' . date("ymds");
             $payload = 'spdata=<?xml version="1.0" encoding="utf-8"?>
@@ -419,6 +427,11 @@ if (!class_exists("WC_Shurjopay")) {
                             <uniqID>' . $uniq_transaction_key . '</uniqID>
                             <totalAmount>' . $totalamount . '</totalAmount>
                             <paymentOption>shurjopay</paymentOption>
+							<custom1>' . $shipping_first_name." ".$shipping_last_name . '</custom1>
+							<custom2>' . $shipping_order . '</custom2>
+							<custom3>' . $shipping_email . '</custom3>
+							<custom4>' . $shipping_address_1." ".$shipping_address_2 . '</custom4>
+
                             <returnURL>' . $this->api_return_url . '</returnURL></shurjoPay>';
             $response = $this->shurjopay_submit_data($this->gw_api_url, $payload);
             print_r($response);
