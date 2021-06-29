@@ -410,13 +410,13 @@ if (!class_exists("WC_Shurjopay")) {
             {
                 $totalamount=($order->get_total()*85);
             }
-				$shipping_first_name = $order->get_billing_first_name();
-				$shipping_last_name  = $order->get_billing_last_name();
+				$shipping_first_name = isset($order->get_billing_first_name())?$order->get_billing_first_name():'';
+				$shipping_last_name  = isset($order->get_billing_last_name())?$order->get_billing_last_name():'';
 				
-				$shipping_address_1  = $customer->get_billing_address_1();
-				$shipping_address_2  = $customer->get_billing_address_2();
-				$shipping_order   = $order->get_billing_phone();
-				$shipping_email   = $order->get_billing_email();
+				$shipping_address_1  = isset($customer->get_billing_address_1())?$customer->get_billing_address_1():'';
+				$shipping_address_2  = isset($customer->get_billing_address_2())?$customer->get_billing_address_2():'';
+				$shipping_order   = isset($order->get_billing_phone())?$order->get_billing_phone():'';
+				$shipping_email   = isset($order->get_billing_email())?$order->get_billing_email():'';
 
 
             $uniq_transaction_key = $this->api_unique_id . $order->get_id() . '_' . date("ymds");
