@@ -260,7 +260,7 @@ if (!class_exists("WC_Shurjopay")) {
             if (!isset($_REQUEST['spdata']) || empty($_REQUEST['spdata'])) {
                 $this->msg['class'] = 'error';
                 $this->msg['message'] = "Payment data not found.";
-                return $this->redirect_with_msg(false);
+                return $this->redirect_with_msg(false,false);
             }
             $encResponse = $_REQUEST["spdata"];
             $decryptValues = $this->decrypt_and_validate($encResponse);
@@ -268,48 +268,54 @@ if (!class_exists("WC_Shurjopay")) {
             if ($decryptValues == false) {
                 $this->msg['class'] = 'error';
                 $this->msg['message'] = "Payment data not found.";
-                return $this->redirect_with_msg(false);
+                return $this->redirect_with_msg(false,false);
             }
             $order = $this->get_order_from_response($decryptValues);
             if ($order == false) {
                 $this->msg['class'] = 'error';
                 $this->msg['message'] = "Order not found.";
-                return $this->redirect_with_msg(false);
+                return $this->redirect_with_msg(false,false);
             }
             /*if ((string)$decryptValues->txnAmount != $order->get_total()) {
                 $this->msg['class'] = 'error';
                 $this->msg['message'] = "Unauthorized data access.";
                 return $this->redirect_with_msg(false);
             }*/
+
+            $order_status_sp_msg = "Payment Status = {$decryptValues->bankTxStatus}<br/>
+                                    Bank trx id = {$decryptValues->bankTxID}<br/>
+                                    Invoice id = {$decryptValues->txID}<br/>
+                                    Card Type = {$decryptValues->paymentOption}<br/>
+                                    Payment Gateway = shurjoPay";
+
             try {
                 if (strtolower($order->get_status()) != 'completed') {
                     switch (strtolower($decryptValues->bankTxStatus)) {
                         case "success":
                             $this->msg['message'] = "Thank you for shopping with us. Your account has been charged and your transaction is successful. We will be shipping your order to you soon.";
                             $this->msg['class'] = 'success';
-                            //$order->payment_complete();//Most of the time this should mark an order as 'processing' so that admin can process/post the items.
                             $woocommerce->cart->empty_cart();
-                            $order->add_order_note("ShurjoPay payment successful.<br/> Bank Ref Number: " . $decryptValues->bankTxID);
+                            $order->add_order_note($order_status_sp_msg);
                             $order->update_status($this->after_payment_status, $this->order_status_messege[$this->after_payment_status]);
                             do_action( 'woocommerce_reduce_order_stock', $order );
                             break;
                         case "cancel":
-                            $this->msg['message'] = "Transaction canceled.<br/>Bank Ref Number: '" . $decryptValues->bankTxID . "'.<br/>We will keep you posted regarding the status of your order through e-mail";
+                            $this->msg['message'] = "Your Transaction <b>Canceled</b>.<br/>Invoice ID: " . $decryptValues->txID ."<br/> Payment Method: ".$data_dycrpt->paymentOption.".<br/>We will keep you posted regarding the status of your order through e-mail";
+
                             $this->msg['class'] = 'error';
-                            $order->add_order_note("Transaction canceled by client.");
+                            // $order->add_order_note("Transaction canceled by client.");
+                            $order->add_order_note($order_status_sp_msg);
                             $order->update_status('cancelled');
                             break;
                         case "fail":
                             $this->msg['class'] = 'error';
-                            // $this->msg['message'] = "Thank you for shopping with us.<br/>Bank Ref Number: '" . $decryptValues->bankTxID . "'.<br/>However, the transaction has been failed.";
-                            $this->msg['message'] = "Transaction Failed.<br/>Bank Ref Number: '" . $decryptValues->bankTxID . "'.<br/>Thank you for shopping with us.";
-
-                            $order->add_order_note("Transaction failed.");
+                            $this->msg['message'] = "Your Transaction <b>Failed</b>.<br/>Invoice ID: " . $decryptValues->txID ."<br/> Payment Method: ".$data_dycrpt->paymentOption.".<br/>We will keep you posted regarding the status of your order through e-mail";
+                            $order->add_order_note($order_status_sp_msg);                            
                             $order->update_status('failed');
                             break;                                                  
                         default:
                             $this->msg['class'] = 'error';
-                            $this->msg['message'] = "Thank you for shopping with us.<br/>Bank Ref Number: '" . $decryptValues->bankTxID . "'.<br/>!!However, the transaction has been declined.";
+                            $this->msg['message'] = "Your Transaction <b>Failed</b>.<br/>Invoice ID: " . $decryptValues->txID ."<br/> Payment Method: ".$data_dycrpt->paymentOption.".<br/>!!However, the transaction has been declined.";
                             $order->add_order_note("Bank transaction not successful.");
                             break;
                     };
@@ -325,7 +331,7 @@ if (!class_exists("WC_Shurjopay")) {
         private function redirect_with_msg($order, $bankTxStatus)
         {
             global $woocommerce;
-            // $redirect = home_url('checkout/order-received/');
+            $redirect = wc_get_checkout_url();
             $woocommerce->session->set( 'wc_notices', array() );
             if (function_exists('wc_add_notice')) {
                 wc_add_notice($this->msg['message'], $this->msg['class']);
@@ -410,13 +416,13 @@ if (!class_exists("WC_Shurjopay")) {
             {
                 $totalamount=($order->get_total()*85);
             }
-				$shipping_first_name = !empty($order->get_billing_first_name())?$order->get_billing_first_name():'';
-				$shipping_last_name  = !empty($order->get_billing_last_name())?$order->get_billing_last_name():'';
-				
-				$shipping_address_1  = !empty($order->get_billing_address_1())?$order->get_billing_address_1():'';
-				$shipping_address_2  = !empty($order->get_billing_address_2())?$order->get_billing_address_2():'';
-				$shipping_order   = !empty($order->get_billing_phone())?$order->get_billing_phone():'';
-				$shipping_email   = !empty($order->get_billing_email())?$order->get_billing_email():'';
+                $shipping_first_name = !empty($order->get_billing_first_name())?$order->get_billing_first_name():'';
+                $shipping_last_name  = !empty($order->get_billing_last_name())?$order->get_billing_last_name():'';
+                
+                $shipping_address_1  = !empty($order->get_billing_address_1())?$order->get_billing_address_1():'';
+                $shipping_address_2  = !empty($order->get_billing_address_2())?$order->get_billing_address_2():'';
+                $shipping_order   = !empty($order->get_billing_phone())?$order->get_billing_phone():'';
+                $shipping_email   = !empty($order->get_billing_email())?$order->get_billing_email():'';
 
 
             $uniq_transaction_key = $this->api_unique_id . $order->get_id() . '_' . date("ymds");
@@ -427,12 +433,13 @@ if (!class_exists("WC_Shurjopay")) {
                             <uniqID>' . $uniq_transaction_key . '</uniqID>
                             <totalAmount>' . $totalamount . '</totalAmount>
                             <paymentOption>shurjopay</paymentOption>
-							<custom1>' . $shipping_first_name." ".$shipping_last_name . '</custom1>
-							<custom2>' . $shipping_order . '</custom2>
-							<custom3>' . $shipping_email . '</custom3>
-							<custom4>' . $shipping_address_1." ".$shipping_address_2 . '</custom4>
+                            <custom1>' . $shipping_first_name." ".$shipping_last_name . '</custom1>
+                            <custom2>' . $shipping_order . '</custom2>
+                            <custom3>' . $shipping_email . '</custom3>
+                            <custom4>' . $shipping_address_1." ".$shipping_address_2 . '</custom4>
 
                             <returnURL>' . $this->api_return_url . '</returnURL></shurjoPay>';
+            // print_r($payload);exit;
             $response = $this->shurjopay_submit_data($this->gw_api_url, $payload);
             print_r($response);
             exit;
